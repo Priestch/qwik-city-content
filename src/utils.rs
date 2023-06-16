@@ -97,7 +97,7 @@ pub fn output_path<P: AsRef<Path>>(outdir: P, path: &str) -> PathBuf {
 #[inline]
 pub fn write_output_path<P: AsRef<Path>, W: Write>(
     outdir: P,
-    path: &str,
+    _path: &str,
     w: &mut W,
 ) -> std::io::Result<()> {
     // let extension = if path.ends_with(".mdx") {
@@ -106,13 +106,13 @@ pub fn write_output_path<P: AsRef<Path>, W: Write>(
     //     ".ts"
     // };
     w.write_fmt(format_args!("{}", outdir.as_ref().display()))?;
-    for c in path.trim_start_matches('/').chars() {
-        if c == '/' {
-            w.write_all(&[b'_'])?;
-            continue;
-        }
-        w.write_all(&[c as u8])?;
-    }
+    // for c in path.trim_start_matches('/').chars() {
+    //     if c == '/' {
+    //         w.write_all(&[b'_'])?;
+    //         continue;
+    //     }
+    //     w.write_all(&[c as u8])?;
+    // }
     Ok(())
     // w.write_all(extension.as_bytes())
 }
