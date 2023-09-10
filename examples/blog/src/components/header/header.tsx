@@ -5,7 +5,7 @@ import styles from './header.css?inline';
 export default component$(() => {
   useStyles$(styles);
 
-  const pathname = useLocation().pathname;
+  const pathname = useLocation().url.pathname;
 
   return (
     <header>
