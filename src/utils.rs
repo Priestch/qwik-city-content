@@ -105,7 +105,8 @@ pub fn write_output_path<P: AsRef<Path>, W: Write>(
     // } else {
     //     ".ts"
     // };
-    w.write_fmt(format_args!("{}", outdir.as_ref().display()))?;
+    let p_ref = outdir.as_ref();
+    w.write_fmt(format_args!("{}", p_ref.with_extension("").display()))?;
     // for c in path.trim_start_matches('/').chars() {
     //     if c == '/' {
     //         w.write_all(&[b'_'])?;
