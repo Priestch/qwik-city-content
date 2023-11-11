@@ -1,21 +1,16 @@
 # Build
-build
-dist
-lib
-server
-functions/**/*.js
-
-# Generated
-src/content-generated
-src/routes/**/**/generated.ts
+/dist
+/lib
+/lib-types
+/server
 
 # Development
 node_modules
+*.local
 
 # Cache
 .cache
 .mf
-.vscode
 .rollup.cache
 tsconfig.tsbuildinfo
 
@@ -29,7 +24,10 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Editor
-!.vscode/extensions.json
+.vscode/*
+!.vscode/launch.json
+!.vscode/*.code-snippets
+
 .idea
 .DS_Store
 *.suo
@@ -41,3 +39,7 @@ lerna-debug.log*
 # Yarn
 .yarn/*
 !.yarn/releases
+
+# Generated
+src/content-generated
+src/routes/**/**/generated.ts

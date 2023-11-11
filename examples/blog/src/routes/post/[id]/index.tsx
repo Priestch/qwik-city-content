@@ -1,7 +1,6 @@
 import { component$ } from "@builder.io/qwik";
 import { useLocation } from "@builder.io/qwik-city";
 import type { StaticGenerateHandler } from "@builder.io/qwik-city";
-import { RequestHandler, useEndpoint } from "@builder.io/qwik-city";
 import * as Taxonomies from "@content/taxonomies";
 import { RouteParams } from "./generated";
 
@@ -36,7 +35,7 @@ import { RouteParams } from "./generated";
 
 export default component$(() => {
   const { params } = useLocation();
-  const post = Taxonomies.posts.find((post) => {
+  const post: any = Taxonomies.posts.find((post) => {
     console.log('post', post._slug, params.id);
     return post._slug === params.id.toLowerCase();
   });
@@ -48,12 +47,12 @@ export default component$(() => {
         { !!post.description && <p>{post.description}</p> }
       </header>
 
-      <div className="content" dangerouslySetInnerHTML={post?._content} />
+      <div class="content" dangerouslySetInnerHTML={post?._content} />
 
       <h2 id="tags">Tags</h2>
 
       <ul aria-labelledby="tags">
-        {post.tags.map(tag => <a href={`/tags/${tag}`}>{tag}</a>)}
+        {post.tags.map((tag: string) => <a href={`/tags/${tag}`}>{tag}</a>)}
       </ul>
     </article>
   )
