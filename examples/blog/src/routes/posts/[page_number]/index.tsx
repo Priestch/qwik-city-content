@@ -1,13 +1,16 @@
 import { component$ } from "@builder.io/qwik";
-import type {StaticGenerateHandler} from "@builder.io/qwik-city";
+import {routeLoader$} from "@builder.io/qwik-city";
 import * as Taxonomies from "@content/taxonomies";
+import Posts from '@components/posts';
+
+export const usePosts = routeLoader$(async (requestEvent) => {
+  return Taxonomies.posts;
+});
 
 export default component$(() => {
-  const content = '';
+  const signal = usePosts();
   return (
-    <div>
-      Post page
-    </div>
+  <Posts posts={signal.value} />
   )
 })
 

@@ -11,12 +11,6 @@ export default component$(() => {
           <a href="/blog">Blog</a>
         </li>
         <li>
-          <a href="/docs">Docs</a>
-        </li>
-        <li>
-          <a href="/about-us">About Us</a>
-        </li>
-        <li>
           <a class="footer-home" href="/">
             Home
           </a>
