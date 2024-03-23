@@ -5,7 +5,7 @@ use pulldown_cmark::{Alignment, CowStr};
 use crate::utils::html_tag;
 use crate::{imports::Imports, types::Config};
 use std::collections::HashMap;
-use std::fmt::{Display, Write as _};
+use std::fmt::{Debug, Display, Write as _};
 use std::iter::Peekable;
 // import without risk of name clashing
 use std::sync::Arc;
@@ -35,6 +35,11 @@ pub struct ContentVec {
     inner: Vec<Content>,
 }
 
+pub struct MdDoc {
+    pub text: String,
+    pub(crate) content: ContentVec,
+}
+
 impl Display for ContentVec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_char('[')?;
@@ -57,12 +62,15 @@ enum TableState {
 pub struct Markdown<'a> {
     config: Arc<Config>,
     pub content: Vec<Content>,
+    pub excerpt_text: String,
     html_buffer: String,
     component_buffer: Vec<String>,
     table_state: TableState,
     table_alignments: Vec<Alignment>,
     table_cell_index: usize,
     numbers: HashMap<CowStr<'a>, usize>,
+    tag_stack: Vec<u8>,
+    is_valid_context: bool,
 }
 
 impl<'a> Markdown<'a> {
@@ -70,18 +78,22 @@ impl<'a> Markdown<'a> {
         Self {
             config,
             content: Vec::default(),
+            excerpt_text: "".to_string(),
             html_buffer: String::default(),
             component_buffer: Vec::default(),
             table_state: TableState::Head,
             table_alignments: vec![],
             table_cell_index: 0,
             numbers: HashMap::new(),
+            tag_stack: vec![],
+            is_valid_context: false,
         }
     }
     pub fn reset(&mut self) {
         self.content.clear();
         self.html_buffer.clear();
         self.component_buffer.clear();
+        self.excerpt_text.clear();
     }
     pub fn content(&mut self) -> Vec<Content> {
         let content = self.content.drain(..).collect();
@@ -103,8 +115,10 @@ impl<'a> Markdown<'a> {
         }
     }
     pub fn start_tag(&mut self, tag: pulldown_cmark::Tag<'a>) -> std::io::Result<()> {
+        self.tag_stack.push(0);
         match tag {
             pulldown_cmark::Tag::Paragraph => {
+                self.is_valid_context = true;
                 self.push_html_str("<p>");
             }
             pulldown_cmark::Tag::Heading(lvl, id, classes) => {
@@ -227,8 +241,12 @@ impl<'a> Markdown<'a> {
         Ok(())
     }
     pub fn end_tag(&mut self, tag: pulldown_cmark::Tag) -> std::io::Result<()> {
+        self.tag_stack.pop();
         match tag {
-            pulldown_cmark::Tag::Paragraph => self.push_html_str("</p>"),
+            pulldown_cmark::Tag::Paragraph => {
+                self.is_valid_context = false;
+                self.push_html_str("</p>")
+            },
             pulldown_cmark::Tag::Heading(lvl, _, _) => {
                 self.push_html_str("</");
                 let _ = write!(self.html_buffer, "{}", lvl);
@@ -329,19 +347,33 @@ impl<'a> Markdown<'a> {
         self.reset();
         Ok(ContentVec { inner: content })
     }
-    pub fn write_md(&'a mut self, src: &'a str) -> std::io::Result<ContentVec> {
+    pub fn write_md(&'a mut self, src: &'a str) -> std::io::Result<MdDoc> {
         let parser = pulldown_cmark::Parser::new(src);
         for event in parser {
             match event {
                 pulldown_cmark::Event::Start(tag) => self.start_tag(tag)?,
                 pulldown_cmark::Event::End(tag) => self.end_tag(tag)?,
-                pulldown_cmark::Event::Text(string) => self.push_html_str(&string),
+                pulldown_cmark::Event::Text(string) => {
+                    self.push_html_str(&string);
+                    if !self.is_valid_context && self.tag_stack.len() > 1 {
+                        continue;
+                    }
+                    if self.excerpt_text.len() > 0 && !string.starts_with(['.', ',', '?', '!']){
+                        let last_char = self.excerpt_text.chars().last().unwrap();
+                        if last_char != ' ' {
+                            self.excerpt_text.push_str(" ");
+                        }
+                    }
+                    self.excerpt_text.push_str(&string);
+                },
                 pulldown_cmark::Event::Code(text) => {
                     self.push_html_str("<code>");
                     escape_html(&mut self.html_buffer, &text)?;
                     self.push_html_str("</code>");
                 }
-                pulldown_cmark::Event::Html(html) => self.push_html_str(&html),
+                pulldown_cmark::Event::Html(html) => {
+                    self.push_html_str(&html)
+                },
                 pulldown_cmark::Event::FootnoteReference(name) => {
                     let len = self.numbers.len() + 1;
                     self.html_buffer
@@ -352,7 +384,10 @@ impl<'a> Markdown<'a> {
                     self.push_html_str(&number.to_string());
                     self.push_html_str("</a></sup>");
                 }
-                pulldown_cmark::Event::SoftBreak => {}
+                pulldown_cmark::Event::SoftBreak => {
+                    // TODO, depends on the language used
+                    self.push_html_str(" ");
+                },
                 pulldown_cmark::Event::HardBreak => self.push_html_str("<br/>"),
                 pulldown_cmark::Event::Rule => self.push_html_str("<hr/>"),
                 pulldown_cmark::Event::TaskListMarker(true) => self
@@ -365,8 +400,12 @@ impl<'a> Markdown<'a> {
         }
         self.dump_html();
         let content = self.content();
+        let text = self.excerpt_text.clone().replace("\n", " ");
         self.reset();
-        Ok(ContentVec { inner: content })
+        Ok(MdDoc {
+            text,
+            content: ContentVec { inner: content },
+        })
     }
 }
 
@@ -380,10 +419,11 @@ mod test {
 
     #[test]
     fn markdown() {
-        let src = "# A heading\n\nSome text. ![a link](http://www.fake.com)";
+        let src = "# A heading\n\nA Paragraph\n```javascript\nconsole.log('Hello, world!');\n```\n\nSome text, <span>Html text</span>. ![a link](http://www.fake.com)";
         let config = Arc::new(Config::new(PathBuf::new(), PathBuf::new(), PathBuf::new()));
         let mut markdown = Markdown::new(config);
-        let content = markdown.write_md(src).unwrap();
-        println!("{}", content);
+        let doc = markdown.write_md(src).unwrap();
+        println!("{}", doc.text);
+        println!("{}", "33333");
     }
 }

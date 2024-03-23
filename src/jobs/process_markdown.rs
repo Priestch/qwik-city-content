@@ -27,8 +27,8 @@ pub fn process_all(content: Arc<Content>, config: Arc<Config>) -> std::io::Resul
         let file = File::create(outpath)?;
         let mut w = BufWriter::new(file);
         let path = content.path(token);
-        let content_vec = match Markdown::new(config.clone()).write_md(content.body_raw(token)) {
-            Ok(vec) => vec,
+        let md_doc = match Markdown::new(config.clone()).write_md(content.body_raw(token)) {
+            Ok(doc) => doc,
             Err(e) => {
                 println!("{}", e);
                 continue;
@@ -45,11 +45,12 @@ pub fn process_all(content: Arc<Content>, config: Arc<Config>) -> std::io::Resul
             .and_then(|s| s.strip_prefix('/'))
         {
             w.write_all(b"export default ")?;
-            Page::write_json(
+            Page::write_md_json(
                 &stripped,
                 content.frontmatter_raw(token),
                 content.body_raw(token),
-                &content_vec,
+                &md_doc.content,
+                &md_doc.text,
                 &mut w,
             )?;
             w.write_all(b"\n")?;

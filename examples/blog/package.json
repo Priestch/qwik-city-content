@@ -40,7 +40,9 @@
     "vite-tsconfig-paths": "^4.2.1"
   },
   "dependencies": {
+    "dayjs": "^1.11.10",
     "foundation-sites": "^6.8.1",
+    "htmlparser2": "^9.0.0",
     "jquery": "^3.7.1"
   }
 }

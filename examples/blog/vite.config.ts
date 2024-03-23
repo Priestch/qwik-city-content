@@ -11,5 +11,16 @@ export default defineConfig(() => {
         "Cache-Control": "public, max-age=600",
       },
     },
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: (source, id) => {
+            return !id.includes("node_modules/foundation-sites/scss/") ? source : ""
+          },
+          includePaths: ["node_modules/foundation-sites/scss"],
+          verbose: true,
+        },
+      },
+    }
   };
 });

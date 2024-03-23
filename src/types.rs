@@ -64,6 +64,38 @@ impl<'a> Page<'a> {
         w.write_all(" }".as_bytes())?;
         Ok(())
     }
+
+    pub fn write_md_json<P: AsRef<Path> + 'a, W: Write>(
+        p: P,
+        frontmatter: &'a str,
+        raw: &'a str,
+        content: &ContentVec,
+        text: &str,
+        w: &mut W,
+    ) -> std::io::Result<()> {
+        let mut hasher = DefaultHasher::new();
+        hasher.write(p.as_ref().to_str().unwrap_or_default().as_bytes());
+        let _id = hasher.finish();
+        let _path = p.as_ref().to_path_buf();
+        let _slug = _path.file_stem().and_then(|s| s.to_str());
+        let _directory = _path.parent().and_then(|s| s.to_str());
+        let yaml = crate::yaml::Parser::from_str(frontmatter).parse();
+        w.write_all("{ ".as_bytes())?;
+        w.write_fmt(format_args!("_id: \"{}\", ", _id))?;
+        w.write_fmt(format_args!("_slug: \"{}\", ", _slug.unwrap_or_default()))?;
+        w.write_fmt(format_args!("_raw: {:?}, ", raw))?;
+        w.write_fmt(format_args!(
+            "_directory: \"{}\", ",
+            _directory.unwrap_or_default()
+        ))?;
+        w.write_fmt(format_args!("_content: {}, ", content))?;
+        w.write_fmt(format_args!("_text: {:?}, ", text))?;
+        if let Ok(yaml) = yaml {
+            yaml.write_json(w)?;
+        }
+        w.write_all(" }".as_bytes())?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

@@ -1,0 +1,22 @@
+.post {
+  &:not(.last) {
+    margin-bottom: 20px;
+  }
+
+  .post-title {
+    font-size: 20px;
+    margin-block-start: 0.5em;
+    margin-block-end: 0.5em;
+  }
+
+  .post-excerpt {
+    color: #4f4f4f;
+    margin-block-start: 0.4em;
+    margin-block-end: 0.4em;
+  }
+
+  .summary {
+    display: flex;
+    color: #8f8f8f;
+  }
+}
